@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="ワンタップ連絡">
+<meta name="theme-color" content="#1B2A4A">
+<title>ワンタップ連絡</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#EEF1F5; --surface:#FFFFFF; --ink:#1B2A4A; --sub:#5A6680;
+  --band:#1B2A4A; --band-ink:#FFFFFF; --stripe:#F2A900; --line:#D5DBE5;
+  --danger:#C8323C; --send:#06C755; --overlay:rgba(15,22,40,.55);
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0F1628; --surface:#1A2338; --ink:#E8ECF4; --sub:#9AA6BE;
+    --band:#2B3E66; --band-ink:#FFFFFF; --line:#2C3752; --overlay:rgba(0,0,0,.65);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0F1628; --surface:#1A2338; --ink:#E8ECF4; --sub:#9AA6BE;
+  --band:#2B3E66; --band-ink:#FFFFFF; --line:#2C3752; --overlay:rgba(0,0,0,.65);
+}
+*,*::before,*::after{box-sizing:border-box}
+html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
+body{
+  margin:0;min-height:100%;background:var(--bg);color:var(--ink);
+  font-family:"BIZ UDPGothic","Hiragino Sans","Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif;
+  font-size:16px;line-height:1.6;-webkit-tap-highlight-color:transparent;
+}
+.wrap{max-width:560px;margin:0 auto;padding:20px 16px 40px}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:20px}
+h1{font-size:22px;margin:0;letter-spacing:.04em}
+.tools{display:flex;gap:8px}
+.chip{
+  font:inherit;font-size:16px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);
+  padding:8px 14px;border-radius:999px;cursor:pointer;
+}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.chip:focus-visible,.board:focus-visible,.btn:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px solid var(--stripe);outline-offset:2px}
+
+.list{display:flex;flex-direction:column;gap:16px}
+.item{position:relative}
+.board{
+  display:block;width:100%;text-align:left;font:inherit;color:inherit;cursor:pointer;
+  background:var(--surface);border:none;border-radius:6px;padding:0;overflow:hidden;
+  box-shadow:0 2px 0 var(--line);
+  transition:transform .08s ease;
+}
+.board:active{transform:translateY(2px);box-shadow:none}
+.band{
+  background:var(--band);color:var(--band-ink);padding:6px 14px;font-size:14px;
+  display:flex;justify-content:space-between;align-items:center;
+  border-bottom:4px solid var(--stripe);
+}
+.band .go{font-weight:700}
+.msg{padding:18px 16px 20px;font-size:21px;font-weight:700;line-height:1.5;word-break:break-word}
+.preview{padding:0 16px 14px;font-size:14px;color:var(--sub);margin-top:-10px;white-space:pre-wrap}
+.edit-row{display:none;gap:8px;margin-top:8px;justify-content:flex-end}
+.editing .edit-row{display:flex}
+.editing .board{cursor:default;opacity:.85}
+.btn{
+  font:inherit;font-size:16px;border-radius:8px;padding:10px 16px;cursor:pointer;
+  border:1.5px solid var(--line);background:var(--surface);color:var(--ink);
+}
+.btn.primary{background:var(--ink);color:var(--bg);border-color:var(--ink);font-weight:700}
+.btn.danger{color:var(--danger);border-color:var(--danger)}
+.add{
+  width:100%;margin-top:16px;padding:16px;font:inherit;font-size:17px;cursor:pointer;
+  border:2px dashed var(--line);border-radius:6px;background:transparent;color:var(--sub);
+}
+.empty{text-align:center;color:var(--sub);padding:32px 12px}
+.note{font-size:14px;color:var(--sub);margin-top:28px}
+
+.sheet-bg{
+  position:fixed;inset:0;background:var(--overlay);display:none;align-items:flex-end;justify-content:center;z-index:10;
+}
+.sheet-bg.open{display:flex}
+.sheet{
+  width:100%;max-width:560px;background:var(--surface);color:var(--ink);
+  border-radius:14px 14px 0 0;padding:20px 16px calc(20px + env(safe-area-inset-bottom,0px));
+  max-height:90%;overflow:auto;
+}
+.sheet h2{font-size:18px;margin:0 0 14px}
+.field{margin-bottom:16px}
+.field label{display:block;font-size:15px;font-weight:700;margin-bottom:6px}
+.field .hint{font-size:14px;color:var(--sub);margin-top:4px}
+input[type=text],textarea{
+  width:100%;font:inherit;font-size:16px;color:var(--ink);background:var(--bg);
+  border:1.5px solid var(--line);border-radius:8px;padding:12px;
+}
+textarea{min-height:110px;resize:vertical}
+.toggle{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:6px 0}
+.toggle input{width:24px;height:24px;accent-color:var(--ink)}
+.actions{display:flex;gap:10px;justify-content:flex-end;margin-top:8px}
+
+.toast{
+  position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%) translateY(20px);
+  background:var(--ink);color:var(--bg);padding:12px 18px;border-radius:999px;font-size:15px;
+  opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:20;white-space:nowrap;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+@media (prefers-reduced-motion:reduce){.board,.toast{transition:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>ワンタップ連絡</h1>
+    <div class="tools">
+      <button class="chip" id="editBtn" aria-pressed="false">編集</button>
+      <button class="chip" id="setBtn">設定</button>
+    </div>
+  </header>
+
+  <div id="root">
+    <div class="list" id="list"></div>
+    <button class="add" id="addBtn" hidden>＋ 定型文を追加</button>
+  </div>
+
+  <p class="note">ボタンを押すとLINEが開きます。送り先のグループを選んで送信してください。</p>
+</div>
+
+<!-- 定型文の編集 -->
+<div class="sheet-bg" id="editSheet" role="dialog" aria-modal="true" aria-labelledby="editTitle">
+  <div class="sheet">
+    <h2 id="editTitle">定型文を編集</h2>
+    <div class="field">
+      <label for="tplText">送る文章</label>
+      <textarea id="tplText"></textarea>
+    </div>
+    <div class="actions">
+      <button class="btn" data-close>キャンセル</button>
+      <button class="btn primary" id="tplSave">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 設定 -->
+<div class="sheet-bg" id="setSheet" role="dialog" aria-modal="true" aria-labelledby="setTitle">
+  <div class="sheet">
+    <h2 id="setTitle">設定</h2>
+    <div class="field">
+      <label for="nameIn">名前</label>
+      <input type="text" id="nameIn" placeholder="例：田中">
+      <div class="hint">入れると文章の先頭に【田中】のように付きます。空欄なら付きません。</div>
+    </div>
+    <div class="field">
+      <div class="toggle">
+        <label for="timeIn" style="margin:0">送信時刻を付ける</label>
+        <input type="checkbox" id="timeIn">
+      </div>
+      <div class="hint">文章の最後に（8:42送信）のように付きます。</div>
+    </div>
+    <div class="actions">
+      <button class="btn" data-close>キャンセル</button>
+      <button class="btn primary" id="setSave">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 削除確認 -->
+<div class="sheet-bg" id="delSheet" role="dialog" aria-modal="true" aria-labelledby="delTitle">
+  <div class="sheet">
+    <h2 id="delTitle">この定型文を削除しますか？</h2>
+    <p id="delText" style="margin:0 0 16px;color:var(--sub)"></p>
+    <div class="actions">
+      <button class="btn" data-close>キャンセル</button>
+      <button class="btn danger" id="delOk">削除する</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+(function(){
+  var KEY = 'onetap-line-v1';
+  var VER = 3;
+  var DEFAULT = {
+    templates: [
+      { id: 't1', text: '電車が遅延して出社が遅れます。' },
+      { id: 't2', text: '勤務終了します。' },
+      { id: 't3', text: 'フレックス退社します。' }
+    ],
+    name: '',
+    addTime: false,
+    seedVer: VER
+  };
+  // 以前のデフォルト文言（未編集ならそのまま新しい文言に置き換える）
+  var OLD_TEXT = {
+    t1: ['電車が遅延して遅れます。'],
+    t3: ['今からフレックス退社します。']
+  };
+  var storageOK = true;
+  var state = load();
+  var editing = false;
+  var editId = null;
+  var delId = null;
+
+  function load(){
+    var s = null;
+    try{
+      var raw = localStorage.getItem(KEY);
+      if(raw) s = JSON.parse(raw);
+    }catch(e){ storageOK = false; }
+    var out;
+    if(!s || !Array.isArray(s.templates)){
+      out = clone(DEFAULT);
+    }else{
+      out = { templates: s.templates, name: s.name || '', addTime: !!s.addTime, seedVer: s.seedVer || 1 };
+      if(out.seedVer < VER){
+        out.templates.forEach(function(t){
+          var olds = OLD_TEXT[t.id];
+          var d = DEFAULT.templates.find(function(x){ return x.id === t.id; });
+          if(olds && d && olds.indexOf(t.text) !== -1) t.text = d.text;
+        });
+        DEFAULT.templates.forEach(function(d){
+          if(d.id === 't1') return;
+          if(!out.templates.some(function(t){ return t.id === d.id || t.text === d.text; })){
+            out.templates.push(clone(d));
+          }
+        });
+        out.seedVer = VER;
+      }
+    }
+    writeStore(out);
+    return out;
+  }
+  function writeStore(obj){
+    try{
+      localStorage.setItem(KEY, JSON.stringify(obj));
+      storageOK = true;
+    }catch(e){ storageOK = false; }
+    return storageOK;
+  }
+  function save(){
+    if(!writeStore(state)) toast('保存できませんでした（プライベートブラウズを確認）');
+  }
+  // 端末の空き容量不足などで自動削除されにくくする
+  try{ if(navigator.storage && navigator.storage.persist) navigator.storage.persist(); }catch(e){}
+  function clone(o){ return JSON.parse(JSON.stringify(o)); }
+  function $(id){ return document.getElementById(id); }
+
+  function compose(text, now){
+    var out = '';
+    if(state.name.trim()) out += '【' + state.name.trim() + '】';
+    out += text;
+    if(state.addTime){
+      var d = now || new Date();
+      out += '（' + d.getHours() + ':' + String(d.getMinutes()).padStart(2,'0') + '送信）';
+    }
+    return out;
+  }
+
+  function render(){
+    var list = $('list');
+    list.innerHTML = '';
+    $('root').classList.toggle('editing', editing);
+    $('addBtn').hidden = !editing;
+    $('editBtn').setAttribute('aria-pressed', editing ? 'true' : 'false');
+    $('editBtn').textContent = editing ? '完了' : '編集';
+
+    if(state.templates.length === 0){
+      var e = document.createElement('div');
+      e.className = 'empty';
+      e.textContent = '「編集」から定型文を追加してください。';
+      list.appendChild(e);
+      return;
+    }
+    state.templates.forEach(function(t){
+      var item = document.createElement('div');
+      item.className = 'item';
+
+      var b = document.createElement('button');
+      b.className = 'board';
+      b.type = 'button';
+      var band = document.createElement('div');
+      band.className = 'band';
+      band.innerHTML = '<span>LINEで送る</span><span class="go">▶</span>';
+      var m = document.createElement('div');
+      m.className = 'msg';
+      m.textContent = t.text;
+      b.appendChild(band);
+      b.appendChild(m);
+      var full = compose(t.text, new Date(2000,0,1,8,42));
+      if(full !== t.text){
+        var p = document.createElement('div');
+        p.className = 'preview';
+        p.textContent = '送信内容：' + full;
+        b.appendChild(p);
+      }
+      b.addEventListener('click', function(){ if(!editing) send(t.text); });
+
+      var row = document.createElement('div');
+      row.className = 'edit-row';
+      var up = mk('↑', function(){ move(t.id,-1); });
+      var down = mk('↓', function(){ move(t.id,1); });
+      var ed = mk('編集', function(){ openEdit(t.id); });
+      var del = mk('削除', function(){ openDel(t.id); });
+      del.classList.add('danger');
+      up.setAttribute('aria-label','上へ移動');
+      down.setAttribute('aria-label','下へ移動');
+      [up,down,ed,del].forEach(function(x){ row.appendChild(x); });
+
+      item.appendChild(b);
+      item.appendChild(row);
+      list.appendChild(item);
+    });
+  }
+  function mk(label, fn){
+    var b = document.createElement('button');
+    b.className = 'btn'; b.type = 'button'; b.textContent = label;
+    b.addEventListener('click', fn);
+    return b;
+  }
+
+  function send(text){
+    var msg = compose(text);
+    toast('LINEを開いています…');
+    location.href = 'https://line.me/R/share?text=' + encodeURIComponent(msg);
+  }
+
+  function move(id, dir){
+    var i = state.templates.findIndex(function(t){ return t.id === id; });
+    var j = i + dir;
+    if(j < 0 || j >= state.templates.length) return;
+    var tmp = state.templates[i];
+    state.templates[i] = state.templates[j];
+    state.templates[j] = tmp;
+    save(); render();
+  }
+
+  function open(id){ $(id).classList.add('open'); }
+  function close(el){ el.classList.remove('open'); }
+  document.querySelectorAll('.sheet-bg').forEach(function(bg){
+    bg.addEventListener('click', function(e){ if(e.target === bg) close(bg); });
+    bg.querySelectorAll('[data-close]').forEach(function(c){
+      c.addEventListener('click', function(){ close(bg); });
+    });
+  });
+
+  function openEdit(id){
+    editId = id;
+    var t = id ? state.templates.find(function(x){ return x.id === id; }) : null;
+    $('editTitle').textContent = t ? '定型文を編集' : '定型文を追加';
+    $('tplText').value = t ? t.text : '';
+    open('editSheet');
+    setTimeout(function(){ $('tplText').focus(); }, 50);
+  }
+  $('tplSave').addEventListener('click', function(){
+    var v = $('tplText').value.trim();
+    if(!v){ toast('文章を入力してください'); return; }
+    if(editId){
+      var t = state.templates.find(function(x){ return x.id === editId; });
+      if(t) t.text = v;
+    }else{
+      state.templates.push({ id: 't' + Date.now(), text: v });
+    }
+    save(); render(); close($('editSheet'));
+    toast('保存しました');
+  });
+
+  function openDel(id){
+    delId = id;
+    var t = state.templates.find(function(x){ return x.id === id; });
+    $('delText').textContent = t ? t.text : '';
+    open('delSheet');
+  }
+  $('delOk').addEventListener('click', function(){
+    state.templates = state.templates.filter(function(x){ return x.id !== delId; });
+    save(); render(); close($('delSheet'));
+    toast('削除しました');
+  });
+
+  $('setBtn').addEventListener('click', function(){
+    $('nameIn').value = state.name;
+    $('timeIn').checked = state.addTime;
+    open('setSheet');
+  });
+  $('setSave').addEventListener('click', function(){
+    state.name = $('nameIn').value.trim();
+    state.addTime = $('timeIn').checked;
+    save(); render(); close($('setSheet'));
+    toast('保存しました');
+  });
+
+  $('editBtn').addEventListener('click', function(){ editing = !editing; render(); });
+  $('addBtn').addEventListener('click', function(){ openEdit(null); });
+
+  var tt;
+  function toast(s){
+    var el = $('toast');
+    el.textContent = s; el.classList.add('show');
+    clearTimeout(tt); tt = setTimeout(function(){ el.classList.remove('show'); }, 1800);
+  }
+
+  render();
+})();
+</script>
+</body>
+</html>
