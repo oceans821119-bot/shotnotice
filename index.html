@@ -127,7 +127,7 @@ textarea{min-height:110px;resize:vertical}
     <button class="add" id="addBtn" hidden>＋ 定型文を追加</button>
   </div>
 
-  <p class="note">ボタンを押すとLINEが開きます。送り先のグループを選んで送信してください。</p>
+  <p class="note">ボタンを押すと文章がコピーされ、LINEのトーク一覧が開きます。グループを開いて入力欄に貼り付け、送信してください。</p>
 </div>
 
 <!-- 定型文の編集 -->
@@ -286,7 +286,7 @@ textarea{min-height:110px;resize:vertical}
       b.type = 'button';
       var band = document.createElement('div');
       band.className = 'band';
-      band.innerHTML = '<span>LINEで送る</span><span class="go">▶</span>';
+      band.innerHTML = '<span>コピーしてLINEを開く</span><span class="go">▶</span>';
       var m = document.createElement('div');
       m.className = 'msg';
       m.textContent = t.text;
@@ -299,7 +299,7 @@ textarea{min-height:110px;resize:vertical}
         p.textContent = '送信内容：' + full;
         b.appendChild(p);
       }
-      b.addEventListener('click', function(){ if(!editing) send(t.text); });
+      b.addEventListener('click', function(){ if(!editing) copyAndOpen(t.text); });
 
       var row = document.createElement('div');
       row.className = 'edit-row';
@@ -324,10 +324,29 @@ textarea{min-height:110px;resize:vertical}
     return b;
   }
 
-  function send(text){
-    var msg = compose(text);
-    toast('LINEを開いています…');
-    location.href = 'https://line.me/R/share?text=' + encodeURIComponent(msg);
+  function copyText(text){
+    // まず同期的な方法で試す（iOSでも確実に動きやすい）
+    var ok = false;
+    try{
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.setAttribute('readonly','');
+      ta.style.position = 'fixed'; ta.style.top = '0'; ta.style.left = '0';
+      ta.style.opacity = '0'; ta.style.fontSize = '16px';
+      document.body.appendChild(ta);
+      ta.focus(); ta.select(); ta.setSelectionRange(0, text.length);
+      ok = document.execCommand('copy');
+      document.body.removeChild(ta);
+    }catch(e){ ok = false; }
+    if(!ok && navigator.clipboard && navigator.clipboard.writeText){
+      try{ navigator.clipboard.writeText(text); ok = true; }catch(e){}
+    }
+    return ok;
+  }
+  function copyAndOpen(text){
+    if(!copyText(compose(text))){ toast('コピーできませんでした'); return; }
+    toast('コピーしました。トークに貼り付けてください');
+    setTimeout(function(){ location.href = 'https://line.me/R/nv/chat'; }, 600);
   }
 
   function move(id, dir){
