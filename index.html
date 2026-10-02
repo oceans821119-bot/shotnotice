@@ -127,7 +127,7 @@ textarea{min-height:110px;resize:vertical}
     <button class="add" id="addBtn" hidden>＋ 定型文を追加</button>
   </div>
 
-  <p class="note">ボタンを押すと文章がコピーされ、LINEのトーク一覧が開きます。グループを開いて入力欄に貼り付け、送信してください。</p>
+  <p class="note">ボタンを押すと文章がコピーされ、LINEの送信先選択が開きます。グループを選べばそのまま送信できます。コピーもされているので、他のトークに貼り付けて使うこともできます。</p>
 </div>
 
 <!-- 定型文の編集 -->
@@ -286,7 +286,7 @@ textarea{min-height:110px;resize:vertical}
       b.type = 'button';
       var band = document.createElement('div');
       band.className = 'band';
-      band.innerHTML = '<span>コピーしてLINEを開く</span><span class="go">▶</span>';
+      band.innerHTML = '<span>コピー＆LINEで送る</span><span class="go">▶</span>';
       var m = document.createElement('div');
       m.className = 'msg';
       m.textContent = t.text;
@@ -344,9 +344,12 @@ textarea{min-height:110px;resize:vertical}
     return ok;
   }
   function copyAndOpen(text){
-    if(!copyText(compose(text))){ toast('コピーできませんでした'); return; }
-    toast('コピーしました。トークに貼り付けてください');
-    setTimeout(function(){ location.href = 'https://line.me/R/nv/chat'; }, 600);
+    var msg = compose(text);
+    var copied = copyText(msg);
+    toast(copied ? 'コピーしました。LINEを開きます' : 'LINEを開きます');
+    setTimeout(function(){
+      location.href = 'https://line.me/R/share?text=' + encodeURIComponent(msg);
+    }, 500);
   }
 
   function move(id, dir){
